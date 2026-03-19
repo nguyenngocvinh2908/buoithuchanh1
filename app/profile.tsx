@@ -12,6 +12,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { useAuth } from '../context/AuthContext';
 
 type MenuItemProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -47,11 +49,13 @@ function MenuItem({ icon, label, hasToggle, toggleValue, onToggle, onPress }: Me
 
 export default function ProfileScreen() {
   const [darkMode, setDarkMode] = useState(true);
+  const { user, logout } = useAuth();
+  const router = useRouter();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
 
-      {/* Header — nằm đè lên gradient */}
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity>
           <Ionicons name="arrow-back" size={22} color="#111827" />
@@ -64,30 +68,21 @@ export default function ProfileScreen() {
 
         {/* ── Vùng gradient vàng chia 2 + avatar ── */}
         <View style={styles.topSection}>
-
-          {/* Nửa trên — vàng đậm */}
           <LinearGradient
             colors={['#f5f3d4', '#ede29d']}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
             style={styles.gradientTop}
           />
-
-          {/* Nửa dưới — vàng nhạt đến trắng */}
           <LinearGradient
             colors={['#F5F0C8', '#FDFDF5']}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
             style={styles.gradientBottom}
           />
-
-          {/* Avatar nằm ở ranh giới giữa 2 vùng, bị "nhúng" vào */}
           <View style={styles.avatarWrapper}>
-            {/* Border 1 — ngoài cùng, mờ nhất */}
             <View style={styles.ring1}>
-              {/* Border 2 */}
               <View style={styles.ring2}>
-                {/* Border 3 — trong cùng */}
                 <View style={styles.ring3}>
                   <Image
                     source={require('../assets/avatar/avatar.png')}
@@ -96,18 +91,16 @@ export default function ProfileScreen() {
                 </View>
               </View>
             </View>
-
-            {/* Nút edit */}
             <TouchableOpacity style={styles.editBtn}>
               <Ionicons name="pencil" size={13} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Tên + Email */}
+        {/* Tên + Email — hiển thị user thật từ AuthContext */}
         <View style={styles.nameSection}>
-          <Text style={styles.profileName}>Rakibul Hasan</Text>
-          <Text style={styles.profileEmail}>rakibhbrand@gmail.com</Text>
+          <Text style={styles.profileName}>{user?.name ?? 'Người dùng'}</Text>
+          <Text style={styles.profileEmail}>{user?.email ?? ''}</Text>
         </View>
 
         {/* ── Menu ── */}
@@ -157,7 +150,14 @@ export default function ProfileScreen() {
           onPress={() =>
             Alert.alert('Log Out', 'Are you sure?', [
               { text: 'Cancel', style: 'cancel' },
-              { text: 'Log Out', style: 'destructive' },
+              {
+                text: 'Log Out',
+                style: 'destructive',
+                onPress: () => {
+                  logout();
+                  router.replace('/(auth)/login');
+                },
+              },
             ])
           }
         >
@@ -170,20 +170,15 @@ export default function ProfileScreen() {
 }
 
 const AVATAR_SIZE = 100;
-const RING1_SIZE = AVATAR_SIZE + 24; // +12 mỗi bên
+const RING1_SIZE = AVATAR_SIZE + 24;
 const RING2_SIZE = AVATAR_SIZE + 14;
 const RING3_SIZE = AVATAR_SIZE + 6;
-const TOP_HEIGHT = 90;   // chiều cao nửa trên
-const BOT_HEIGHT = 80;    // chiều cao nửa dưới
-// Avatar center nằm đúng ranh giới 2 vùng
+const TOP_HEIGHT = 90;
+const BOT_HEIGHT = 80;
 const AVATAR_TOP = TOP_HEIGHT - RING1_SIZE / 2;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -193,13 +188,7 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     zIndex: 10,
   },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-  },
-
-  // ── Top section gradient + avatar ──
+  headerTitle: { fontSize: 16, fontWeight: '600', color: '#111827' },
   topSection: {
     height: TOP_HEIGHT + BOT_HEIGHT,
     position: 'relative',
@@ -207,9 +196,7 @@ const styles = StyleSheet.create({
   },
   gradientTop: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    top: 0, left: 0, right: 0,
     height: TOP_HEIGHT,
     borderBottomLeftRadius: 40,
     borderBottomRightRadius: 40,
@@ -218,14 +205,11 @@ const styles = StyleSheet.create({
     marginTop: 30,
     position: 'absolute',
     top: TOP_HEIGHT,
-    left: 0,
-    right: 0,
+    left: 0, right: 0,
     height: BOT_HEIGHT,
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
   },
-
-  // Avatar nằm ở ranh giới, chìm xuống (zIndex thấp)
   avatarWrapper: {
     position: 'absolute',
     top: AVATAR_TOP,
@@ -235,80 +219,54 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 5,
   },
-
-  // 3 vòng border đồng tâm
   ring1: {
-    width: RING1_SIZE,
-    height: RING1_SIZE,
+    width: RING1_SIZE, height: RING1_SIZE,
     borderRadius: RING1_SIZE / 2,
     borderWidth: 1.5,
-    borderColor: 'rgba(0,0,0,0.12)',   // đen mờ nhất — ngoài cùng
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: 'rgba(0,0,0,0.12)',
+    alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'transparent',
   },
   ring2: {
-    width: RING2_SIZE,
-    height: RING2_SIZE,
+    width: RING2_SIZE, height: RING2_SIZE,
     borderRadius: RING2_SIZE / 2,
     borderWidth: 1.5,
-    borderColor: 'rgba(0,0,0,0.18)',   // đen mờ vừa
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: 'rgba(0,0,0,0.18)',
+    alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'transparent',
   },
   ring3: {
-    width: RING3_SIZE,
-    height: RING3_SIZE,
+    width: RING3_SIZE, height: RING3_SIZE,
     borderRadius: RING3_SIZE / 2,
     borderWidth: 1.5,
-    borderColor: 'rgba(0,0,0,0.25)',   // đen rõ nhất — trong cùng
+    borderColor: 'rgba(0,0,0,0.25)',
     overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
     backgroundColor: '#FFFFFF',
   },
   profileAvatar: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
+    width: AVATAR_SIZE, height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
     resizeMode: 'cover',
   },
   editBtn: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
-    width: 26,
-    height: 26,
+    bottom: 4, right: 4,
+    width: 26, height: 26,
     borderRadius: 13,
     backgroundColor: '#4F46E5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: '#FFFFFF',
     zIndex: 10,
   },
-
-  // Tên + email
   nameSection: {
     alignItems: 'center',
     marginTop: 10,
     marginBottom: 24,
     gap: 4,
   },
-  profileName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#242424',
-  },
-  profileEmail: {
-    fontSize: 12,
-    color: '#686868',
-    fontWeight: '500',
-    textDecorationLine: 'none'
-  },
-
-  // Menu
+  profileName: { fontSize: 20, fontWeight: '700', color: '#242424' },
+  profileEmail: { fontSize: 12, color: '#686868', fontWeight: '500' },
   menuCard: {
     marginHorizontal: 20,
     borderRadius: 20,
@@ -325,38 +283,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 18,
   },
-  menuLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
+  menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   menuIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 36, height: 36, borderRadius: 18,
     backgroundColor: '#F9FAFB',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
-  menuLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#242424',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#F3F4F6',
-    marginHorizontal: 20,
-  },
-
-  // Footer
+  menuLabel: { fontSize: 15, fontWeight: '500', color: '#242424' },
+  divider: { height: 1, backgroundColor: '#F3F4F6', marginHorizontal: 20 },
   footer: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 20,
-    paddingBottom: 30,
+    bottom: 0, left: 0, right: 0,
+    padding: 20, paddingBottom: 30,
   },
   logoutBtn: {
     flexDirection: 'row',
@@ -367,10 +305,5 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     gap: 10,
   },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-  },
+  logoutText: { fontSize: 16, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.5 },
 });

@@ -14,9 +14,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { Colors } from '../constants/Colors'
-import { popularItems, bannerItems } from '../constants/Data'
+import { bannerItems } from '../data/data'
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5'
 import { LinearGradient } from 'expo-linear-gradient'
+import { useAuth } from '../context/AuthContext'
+import { useProduct } from '../context/ProductContext'
 
 const { width } = Dimensions.get('window');
 const GREEN = '#22C55E';
@@ -28,8 +30,9 @@ const categories = [
   { id: '4', name: 'RICE', icon: 'utensils' },
 ];
 
-
 export default function HomeScreen() {
+  const { user } = useAuth();
+  const { filteredProducts, searchText, setSearchText } = useProduct();
   const [activeCategory, setActiveCategory] = useState('1');
   const [activeBanner, setActiveBanner] = useState(0);
 
@@ -65,15 +68,16 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Search Bar — filter icon INSIDE */}
+          {/* Search Bar — realtime filter */}
           <View style={styles.searchBar}>
             <Ionicons name="search-outline" size={22} color={Colors.white} />
             <TextInput
               placeholder="Search your food"
               placeholderTextColor="rgba(255,255,255,0.7)"
               style={styles.searchInput}
+              value={searchText}
+              onChangeText={setSearchText}
             />
-      
             <TouchableOpacity>
               <Ionicons name="options-outline" size={20} color={Colors.white} />
             </TouchableOpacity>
@@ -155,7 +159,7 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* ── Popular Items ── */}
+        {/* ── Popular Items từ ProductContext ── */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Popular Items</Text>
           <TouchableOpacity>
@@ -164,11 +168,18 @@ export default function HomeScreen() {
         </View>
 
         <FlatList
-          data={popularItems}
+          data={filteredProducts}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.popularContainer}
           keyExtractor={(item) => item.id}
+          ListEmptyComponent={
+            <View style={{ paddingHorizontal: 20, paddingVertical: 20 }}>
+              <Text style={{ color: '#9CA3AF', fontSize: 14 }}>
+                Không tìm thấy món ăn nào 🍽️
+              </Text>
+            </View>
+          }
           renderItem={({ item }) => (
             <TouchableOpacity style={styles.popularCard}>
               <Image source={item.image} style={styles.popularImage} />
@@ -188,8 +199,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8F8F0',
   },
-
-  // Yellow header section
   yellowSection: {
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
@@ -207,7 +216,7 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 95
+    gap: 95,
   },
   avatar: {
     width: 49,
@@ -237,7 +246,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#eee'
+    borderColor: '#eee',
   },
   notifDot: {
     position: 'absolute',
@@ -249,8 +258,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#524CE0',
   },
-
-  // Search bar (filter icon INSIDE)
   searchBar: {
     marginTop: 20,
     flexDirection: 'row',
@@ -273,8 +280,6 @@ const styles = StyleSheet.create({
     height: 20,
     backgroundColor: 'rgba(255,255,255,0.3)',
   },
-
-  // Categories
   categoriesContainer: {
     paddingHorizontal: 20,
     gap: 20,
@@ -297,7 +302,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   categoryItemActive: {
-    backgroundColor: GREEN,  // xanh lá khi active
+    backgroundColor: GREEN,
   },
   categoryEmoji: {
     fontSize: 24,
@@ -311,8 +316,6 @@ const styles = StyleSheet.create({
   categoryNameActive: {
     color: '#FFFFFF',
   },
-
-  // Banner
   bannerScroll: {
     paddingLeft: 20,
   },
@@ -389,9 +392,6 @@ const styles = StyleSheet.create({
   },
   discountText: {
     fontSize: 9,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
     fontWeight: '800',
     color: '#FFFFFF',
   },
@@ -400,8 +400,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-
-  // Dots
   dotsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -419,8 +417,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#4F46E5',
     width: 20,
   },
-
-  // Popular Items
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

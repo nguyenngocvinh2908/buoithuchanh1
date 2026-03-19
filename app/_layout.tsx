@@ -1,7 +1,10 @@
-import { Tabs } from 'expo-router'
-import { StyleSheet, View, Text } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
-import { Colors } from '../constants/Colors'
+import { useEffect, useState } from 'react';
+import { Tabs, useRouter, useSegments } from 'expo-router';
+import { StyleSheet, View, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '../constants/Colors';
+import { AuthProvider, useAuth } from '../context/AuthContext';
+import { ProductProvider } from '../context/ProductContext';
 
 type TabIconProps = {
   name: keyof typeof Ionicons.glyphMap;
@@ -13,11 +16,7 @@ function TabIcon({ name, focused, label }: TabIconProps) {
   const GREEN = '#4A43EC';
   return (
     <View style={styles.tabItem}>
-      <Ionicons
-        name={name}
-        size={22}
-        color={focused ? GREEN : Colors.gray}
-      />
+      <Ionicons name={name} size={22} color={focused ? GREEN : Colors.gray} />
       <Text style={[styles.tabLabel, { color: focused ? GREEN : Colors.gray }]}>
         {label}
       </Text>
@@ -25,7 +24,26 @@ function TabIcon({ name, focused, label }: TabIconProps) {
   );
 }
 
-export default function RootLayout() {
+function RootGuard() {
+  const { isLoggedIn } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+    const inAuthGroup = segments[0] === '(auth)';
+    if (!isLoggedIn && !inAuthGroup) {
+      router.replace('/(auth)/login');
+    } else if (isLoggedIn && inAuthGroup) {
+      router.replace('/');
+    }
+  }, [isLoggedIn, segments, isMounted]);
+
   return (
     <Tabs
       screenOptions={{
@@ -70,7 +88,33 @@ export default function RootLayout() {
           ),
         }}
       />
+
+      {/* ── Ẩn tab + ẩn tabBar hoàn toàn ở login/register ── */}
+      <Tabs.Screen
+        name="(auth)/login"
+        options={{
+          tabBarItemStyle: { display: 'none' },
+          tabBarStyle: { display: 'none' },  // ← ẩn toàn bộ tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="(auth)/register"
+        options={{
+          tabBarItemStyle: { display: 'none' },
+          tabBarStyle: { display: 'none' },  // ← ẩn toàn bộ tab bar
+        }}
+      />
     </Tabs>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <ProductProvider>
+        <RootGuard />
+      </ProductProvider>
+    </AuthProvider>
   );
 }
 
